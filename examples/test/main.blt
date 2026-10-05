@@ -1,1 +1,7 @@
-define x 5
+define x "Hello World"
+
+function test
+    print "Function: {x}"
+
+print "Global: {x}"
+call test
