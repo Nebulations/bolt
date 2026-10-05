@@ -1,8 +1,6 @@
-define x "Hello World"
+function greet name
+    return "Hello, {name}!"
 
-function test
-    global x
-    print "Function: {x}"
+define greeting as greet "Jeremy"
 
-print "Global: {x}"
-call test
+print {greeting}

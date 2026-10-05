@@ -38,7 +38,8 @@ public class BoltInterpreter {
                 return defineFunction(index, tokens, stack);
             }
             case "call" -> {
-                return callFunction(index, tokens, stack);
+                callFunction(tokens, stack);
+                return index;
             }
         }
 
@@ -48,18 +49,42 @@ public class BoltInterpreter {
     private void print(List<String> tokens, Stack stack) {
         String content = tokens.get(1);
 
+        content = placeVariablesInText(content, stack);
+
+        System.out.println(content);
+    }
+
+    private String placeVariablesInText(String text, Stack stack) {
         var variables = stack.getVariables();
 
         for (String name : variables.keySet()) {
-            content = content.replace("{" + name + "}", variables.get(name));
+            text = text.replace("{" + name + "}", variables.get(name));
         }
 
-        System.out.println(content);
+        return text;
     }
 
     private void define(List<String> tokens, Stack stack) {
         String name = tokens.get(1);
         String value = tokens.get(2);
+
+        // Variable is the result of a function call
+        if (value.equals("as")) {
+            String functionName = tokens.get(3);
+            var arguments = tokens.subList(4, tokens.size());
+
+            Function function = stack.getFunctions().get(functionName);
+
+            // Function does not exist -> Return null
+            if (function == null) {
+                stack.getVariables().put(name, "null");
+                return;
+            }
+
+            var res = callFunction(function, arguments, new Stack());
+            stack.getVariables().put(name, res);
+            return;
+        }
 
         stack.getVariables().put(name, value);
     }
@@ -89,30 +114,47 @@ public class BoltInterpreter {
         return index;
     }
 
-    private int callFunction(int index, List<String> tokens, Stack stack) {
+    private String callFunction(List<String> tokens, Stack stack) {
         String functionName = tokens.get(1);
 
         var function = stack.getFunctions().get(functionName);
 
         Stack localStack = new Stack();
 
+        return callFunction(function, tokens, localStack);
+    }
+
+    private String callFunction(Function function, List<String> arguments, Stack stack) {
+        // Load the function arguments onto the stack
         for (int i = 0; i < function.arguments().size(); i++) {
-            localStack.getVariables().put(function.arguments().get(i), tokens.get(i+2));
+            stack.getVariables().put(function.arguments().get(i), arguments.get(i));
         }
 
+        // Go through each line in the function and run it
         for (int i = 0; i < function.code().size(); i++) {
             String line = function.code().get(i);
 
             var functionTokens = Tokenizer.tokenize(line);
 
+            // Detect if a global variable should be used, and add it to the stack.
             if (functionTokens.getFirst().equals("global")) {
-                localStack.getVariables().put(functionTokens.get(1), globalStack.getVariables().get(functionTokens.get(1)));
+                stack.getVariables().put(functionTokens.get(1), globalStack.getVariables().get(functionTokens.get(1)));
             }
 
-            interpret(-1, functionTokens, localStack);
+            // Returning a value
+            if (functionTokens.getFirst().equals("return")) {
+                String content = functionTokens.get(1);
+
+                content = placeVariablesInText(content, stack);
+
+                return content;
+            }
+
+            // Interpret the line at the code
+            interpret(-1, functionTokens, stack);
         }
 
-        return index;
+        return "null";
     }
 
 }
