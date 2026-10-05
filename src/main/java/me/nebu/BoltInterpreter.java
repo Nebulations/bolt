@@ -17,7 +17,7 @@ public class BoltInterpreter {
     public void run() {
         for (int i = 0; i < code.size(); i++) {
             String line = code.get(i);
-            if (line.isEmpty()) continue;
+            if (line.isEmpty() || line.stripIndent().startsWith("#")) continue;
             i = interpret(i, Tokenizer.tokenize(line), globalStack);
         }
     }
