@@ -103,7 +103,13 @@ public class BoltInterpreter {
         for (int i = 0; i < function.code().size(); i++) {
             String line = function.code().get(i);
 
-            interpret(-1, Tokenizer.tokenize(line), localStack);
+            var functionTokens = Tokenizer.tokenize(line);
+
+            if (functionTokens.getFirst().equals("global")) {
+                localStack.getVariables().put(functionTokens.get(1), globalStack.getVariables().get(functionTokens.get(1)));
+            }
+
+            interpret(-1, functionTokens, localStack);
         }
 
         return index;

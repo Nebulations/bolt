@@ -1,6 +1,7 @@
 define x "Hello World"
 
 function test
+    global x
     print "Function: {x}"
 
 print "Global: {x}"
